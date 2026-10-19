@@ -2,7 +2,7 @@
 
 Website, API and admin backend for ShubhKaaraj, a wedding and corporate event decor and planning company.
 
-**Status:** Phase 0–1 (foundation + backend). The public pages and the admin UI are the next phases; everything they need (data models, CRUD API, auth, uploads, lead capture) is in place.
+**Status:** Phase 0–2 (foundation, backend and admin panel). The public website is the next phase.
 
 ## Stack
 
@@ -91,9 +91,15 @@ List endpoints accept `page`, `limit`, `q` (search) and resource filters (events
 4. Create the admin once. Mongo listens on the server's `127.0.0.1:27017`, so from the checkout on the VPS run `npm ci && npm run seed:admin` (with `MONGODB_URI` in `.env` pointing at `127.0.0.1`, as in `.env.example`). Remove `ADMIN_PASSWORD` from `.env` afterwards.
 5. Schedule `scripts/backup.sh` with cron (nightly) and test a restore.
 
+## Admin panel
+
+Sign in at `/admin/login`. Everything is phone-friendly: add events with drag-and-drop photo upload (reorder, pick a cover), publish or unpublish, answer enquiries (call, WhatsApp, notes, status), edit contact details and social links, and manage team members (admins only).
+
+Photos are uploaded as soon as they are chosen, before the record is saved. If you upload photos and then leave without saving, those files stay in storage unused. They are harmless and small, and can be cleaned up later.
+
 ## Roadmap
 
 - [x] Phase 0–1: scaffold, Docker, models, validators, auth, CRUD API, uploads, leads
-- [ ] Phase 2: admin panel UI
+- [x] Phase 2: admin panel UI at `/admin` (dashboard, events, services, testimonials, enquiries inbox, site settings, team)
 - [ ] Phase 3: public website (home, services, portfolio, event pages, enquiry form, SEO)
 - [ ] Phase 4: production hardening (monitoring, backups tested, analytics)

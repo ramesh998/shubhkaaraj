@@ -1,25 +1,59 @@
 @import "tailwindcss";
+@import "@fontsource-variable/fraunces/index.css";
+@import "@fontsource-variable/figtree/index.css";
+
+/*
+ * ShubhKaaraj admin palette: deep plum ink, a lilac-tinted paper, and a rani-pink
+ * maroon for actions. Marigold and green carry status only.
+ */
+@theme {
+  --color-ink: #2a1b2d;
+  --color-ink-soft: #3d2a41;
+  --color-paper: #f6f4f8;
+  --color-card: #ffffff;
+  --color-line: #e4dfe8;
+  --color-text: #1f1a24;
+  --color-muted: #6b6372;
+  --color-brand: #8c1d4f;
+  --color-brand-strong: #6f1640;
+  --color-brand-soft: #f6e4ec;
+  --color-gold: #a56f00;
+  --color-gold-soft: #fbf1d9;
+  --color-ok: #25694b;
+  --color-ok-soft: #dff1e8;
+  --color-danger: #b3261e;
+  --color-danger-soft: #fbe4e2;
+  --color-info: #2f4f9e;
+  --color-info-soft: #e4eafa;
+
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
+}
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-paper);
+  color: var(--color-text);
   font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+dialog::backdrop {
+  background: rgb(42 27 45 / 0.5);
 }
