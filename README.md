@@ -2,7 +2,7 @@
 
 Website, API and admin backend for ShubhKaaraj, a wedding and corporate event decor and planning company.
 
-**Status:** Phase 0–2 (foundation, backend and admin panel). The public website is the next phase.
+**Status:** Phase 0–3 (foundation, backend, admin panel and public website). Production hardening is next.
 
 ## Stack
 
@@ -97,9 +97,19 @@ Sign in at `/admin/login`. Everything is phone-friendly: add events with drag-an
 
 Photos are uploaded as soon as they are chosen, before the record is saved. If you upload photos and then leave without saving, those files stay in storage unused. They are harmless and small, and can be cleaned up later.
 
+## Public website
+
+Pages: `/` (home), `/portfolio` (filter by Weddings or Corporate), `/portfolio/[slug]`, `/services`, `/services/[slug]`, `/contact`, plus `sitemap.xml` and `robots.txt`. Everything is read from the same database the admin edits, cached for a few minutes and refreshed immediately when you save in the admin.
+
+- Only **published** events, services and **approved** testimonials appear. The home page shows featured events first.
+- Fill in **Settings** in the admin (phone, WhatsApp, email, address, social links, optional hero text). The WhatsApp number powers the floating button on phones and the links on the enquiry form.
+- The enquiry form posts to `/api/leads` and records the UTM tags from the visitor's link, so you can see which campaign each lead came from. Set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` to turn on spam protection. Set `NEXT_PUBLIC_SITE_URL` to the real domain for correct sitemap and share links.
+- `next build` does not need a database. Pages that depend on content fill in at request time.
+- A missing event or service shows the "not found" page and is marked `noindex`, but the HTTP status is 200 because of how streaming pages work in this Next.js mode.
+
 ## Roadmap
 
 - [x] Phase 0–1: scaffold, Docker, models, validators, auth, CRUD API, uploads, leads
 - [x] Phase 2: admin panel UI at `/admin` (dashboard, events, services, testimonials, enquiries inbox, site settings, team)
-- [ ] Phase 3: public website (home, services, portfolio, event pages, enquiry form, SEO)
+- [x] Phase 3: public website (home, portfolio, event pages, services, contact, enquiry form, SEO)
 - [ ] Phase 4: production hardening (monitoring, backups tested, analytics)
