@@ -1,0 +1,67 @@
+# Development: `docker compose up -d mongo`  (then `npm run dev` on your machine)
+# Production : `docker compose up -d --build` (app + mongo + caddy with automatic HTTPS)
+#
+# MongoDB is only published on 127.0.0.1, never on a public interface.
+
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-shubhkaaraj}
+      MONGO_APP_USER: ${MONGO_APP_USER}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
+      MONGO_DB: ${MONGO_DB:-shubhkaaraj}
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/mongo-init.sh:/docker-entrypoint-initdb.d/mongo-init.sh:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+        NEXT_PUBLIC_MEDIA_URL: ${NEXT_PUBLIC_MEDIA_URL:-}
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Inside the compose network Mongo is reachable by service name.
+      MONGODB_URI: mongodb://${MONGO_APP_USER}:${MONGO_APP_PASSWORD}@mongo:27017/${MONGO_DB:-shubhkaaraj}?authSource=${MONGO_DB:-shubhkaaraj}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - uploads:/data/uploads
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  mongo_data:
+  uploads:
+  caddy_data:
+  caddy_config:

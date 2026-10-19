@@ -1,0 +1,16 @@
+{$DOMAIN:localhost} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Allow image uploads from the admin panel (default Caddy limit is unlimited,
+	# but keep it explicit so a runaway request cannot fill the disk).
+	request_body {
+		max_size 100MB
+	}
+
+	reverse_proxy app:3000
+}
