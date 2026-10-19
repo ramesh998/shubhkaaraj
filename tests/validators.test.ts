@@ -68,3 +68,47 @@ describe("objectId", () => {
     expect(objectId.safeParse("not-an-id").success).toBe(false);
   });
 });
+
+describe("clearing fields in a PATCH", () => {
+  it("accepts empty values and keeps the keys so Mongoose can unset them", async () => {
+    const { eventUpdateSchema, testimonialUpdateSchema } = await import("@/lib/validators/content");
+    const r = eventUpdateSchema.parse({
+      venue: "", story: "", videoUrl: "", guestCount: null, eventDate: "", coverImage: null,
+    });
+    for (const k of ["venue", "story", "videoUrl", "guestCount", "eventDate", "coverImage"]) {
+      expect(k in r, `${k} should be present`).toBe(true);
+      expect((r as Record<string, unknown>)[k]).toBeUndefined();
+    }
+    const t = testimonialUpdateSchema.parse({ eventId: "", photo: null });
+    expect("eventId" in t && "photo" in t).toBe(true);
+  });
+  it("still validates real values", async () => {
+    const { eventUpdateSchema } = await import("@/lib/validators/content");
+    expect(eventUpdateSchema.parse({ guestCount: "250", eventDate: "2026-02-14" }).guestCount).toBe(250);
+    expect(eventUpdateSchema.safeParse({ eventDate: "not a date" }).success).toBe(false);
+    expect(eventUpdateSchema.safeParse({ guestCount: -5 }).success).toBe(false);
+    expect(eventUpdateSchema.safeParse({ videoUrl: "ftp://x.y/z" }).success).toBe(false);
+  });
+});
+
+describe("partial updates never inject defaults (regression: PATCH {featured:true} reset status and images)", () => {
+  it("returns only the keys that were sent", async () => {
+    const { eventUpdateSchema, serviceUpdateSchema, testimonialUpdateSchema, settingsSchema } = await import(
+      "@/lib/validators/content"
+    );
+    expect(eventUpdateSchema.parse({ featured: true })).toEqual({ featured: true });
+    expect(eventUpdateSchema.parse({ title: "New title" })).toEqual({ title: "New title" });
+    expect(serviceUpdateSchema.parse({ status: "published" })).toEqual({ status: "published" });
+    expect(testimonialUpdateSchema.parse({ approved: true })).toEqual({ approved: true });
+    expect(settingsSchema.parse({ phone: "+91 90000 00000" })).toEqual({ phone: "+91 90000 00000" });
+  });
+  it("create schemas still apply their defaults", async () => {
+    const { eventCreateSchema, serviceCreateSchema, testimonialCreateSchema } = await import(
+      "@/lib/validators/content"
+    );
+    const e = eventCreateSchema.parse({ title: "Royal Mandap", category: "wedding-decor", city: "Udaipur" });
+    expect(e).toMatchObject({ status: "draft", featured: false, images: [], tags: [] });
+    expect(serviceCreateSchema.parse({ title: "Wedding decor" })).toMatchObject({ status: "draft", order: 0, images: [], inclusions: [] });
+    expect(testimonialCreateSchema.parse({ name: "Asha", quote: "Wonderful work, thank you!" })).toMatchObject({ approved: false, order: 0 });
+  });
+});

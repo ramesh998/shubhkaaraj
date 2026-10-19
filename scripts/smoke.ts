@@ -161,6 +161,21 @@ async function main() {
     json: { images: [images[0]], title: payload.title + " (edited)" },
   });
   check("event can be edited", patched.status === 200 && patched.json?.data?.images?.length === 1, patched.json);
+  const partial = await call(`/api/admin/events/${ev._id}`, { method: "PATCH", cookie, json: { featured: false } });
+  check(
+    "a partial update changes only what was sent (status and gallery survive)",
+    partial.status === 200 &&
+      partial.json?.data?.featured === false &&
+      partial.json.data.status === "published" &&
+      partial.json.data.images?.length === 1,
+    partial.json?.data && { status: partial.json.data.status, images: partial.json.data.images?.length },
+  );
+  const cleared = await call(`/api/admin/events/${ev._id}`, { method: "PATCH", cookie, json: { venue: "", videoUrl: "", guestCount: null } });
+  check(
+    "empty values clear optional fields",
+    cleared.status === 200 && cleared.json.data.videoUrl === undefined && cleared.json.data.guestCount === undefined,
+    cleared.json,
+  );
   const gone = await fetch(BASE + dropped.url);
   check("removed image's files are deleted from storage", gone.status === 404, gone.status);
   const stillThere = await fetch(BASE + images[0].url);

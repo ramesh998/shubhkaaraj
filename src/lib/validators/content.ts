@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { EVENT_CATEGORIES, PUBLISH_STATUSES } from "@/lib/constants";
 import {
+  clearable,
   imageSchema,
   objectId,
   optionalText,
@@ -8,69 +9,100 @@ import {
   slugSchema,
 } from "./common";
 
-const httpUrl = z
-  .string()
-  .trim()
-  .url()
-  .refine((u) => /^https?:\/\//i.test(u), "Must be an http(s) URL")
-  .max(300);
+/*
+ * IMPORTANT: update (PATCH) schemas are built from the *default-free* shape.
+ * Zod applies `.default()` even inside `.partial()`, so deriving an update schema from
+ * the create schema would silently reset status, images, tags, etc. on every partial
+ * update. Defaults live only in the create schemas (via `.extend`).
+ */
+
+const httpUrl = clearable(
+  z
+    .string()
+    .trim()
+    .url()
+    .refine((u) => /^https?:\/\//i.test(u), "Must be an http(s) URL")
+    .max(300),
+);
 
 /* ---------------------------------- Events --------------------------------- */
 
-export const eventCreateSchema = z.object({
+const eventShape = z.object({
   title: z.string().trim().min(2).max(160),
-  slug: slugSchema.optional(), // generated from the title when omitted
+  slug: slugSchema, // generated from the title on create when omitted
   category: z.enum(EVENT_CATEGORIES),
-  tags: z.array(z.string().trim().min(1).max(40)).max(15).default([]),
+  tags: z.array(z.string().trim().min(1).max(40)).max(15),
   city: z.string().trim().min(2).max(80),
   venue: optionalText(160),
-  eventDate: z.coerce.date().optional(),
-  guestCount: z.number().int().min(0).max(100000).optional(),
-  status: z.enum(PUBLISH_STATUSES).default("draft"),
-  featured: z.boolean().default(false),
-  coverImage: imageSchema.optional(),
-  images: z.array(imageSchema).max(120).default([]),
+  eventDate: clearable(z.coerce.date()),
+  guestCount: clearable(z.coerce.number().int().min(0).max(100000)),
+  status: z.enum(PUBLISH_STATUSES),
+  featured: z.boolean(),
+  coverImage: clearable(imageSchema),
+  images: z.array(imageSchema).max(120),
   story: optionalText(5000),
-  videoUrl: httpUrl.optional(),
+  videoUrl: httpUrl,
   seo: seoSchema,
 });
-export const eventUpdateSchema = eventCreateSchema.partial();
+
+export const eventCreateSchema = eventShape.extend({
+  slug: eventShape.shape.slug.optional(),
+  tags: eventShape.shape.tags.default([]),
+  status: eventShape.shape.status.default("draft"),
+  featured: eventShape.shape.featured.default(false),
+  images: eventShape.shape.images.default([]),
+});
+export const eventUpdateSchema = eventShape.partial();
 export type EventInput = z.infer<typeof eventCreateSchema>;
 
 /* --------------------------------- Services -------------------------------- */
 
-export const serviceCreateSchema = z.object({
+const serviceShape = z.object({
   title: z.string().trim().min(2).max(120),
-  slug: slugSchema.optional(),
+  slug: slugSchema,
   summary: optionalText(300),
   description: optionalText(5000),
-  inclusions: z.array(z.string().trim().min(1).max(200)).max(30).default([]),
-  images: z.array(imageSchema).max(30).default([]),
-  status: z.enum(PUBLISH_STATUSES).default("draft"),
-  order: z.number().int().default(0),
+  inclusions: z.array(z.string().trim().min(1).max(200)).max(30),
+  images: z.array(imageSchema).max(30),
+  status: z.enum(PUBLISH_STATUSES),
+  order: z.number().int(),
   seo: seoSchema,
 });
-export const serviceUpdateSchema = serviceCreateSchema.partial();
+
+export const serviceCreateSchema = serviceShape.extend({
+  slug: serviceShape.shape.slug.optional(),
+  inclusions: serviceShape.shape.inclusions.default([]),
+  images: serviceShape.shape.images.default([]),
+  status: serviceShape.shape.status.default("draft"),
+  order: serviceShape.shape.order.default(0),
+});
+export const serviceUpdateSchema = serviceShape.partial();
 
 /* ------------------------------- Testimonials ------------------------------ */
 
-export const testimonialCreateSchema = z.object({
+const testimonialShape = z.object({
   name: z.string().trim().min(2).max(100),
   quote: z.string().trim().min(10).max(1000),
-  eventId: objectId.optional(),
+  eventId: clearable(objectId),
   eventLabel: optionalText(120),
-  photo: imageSchema.optional(),
-  approved: z.boolean().default(false),
-  order: z.number().int().default(0),
+  photo: clearable(imageSchema),
+  approved: z.boolean(),
+  order: z.number().int(),
 });
-export const testimonialUpdateSchema = testimonialCreateSchema.partial();
+
+export const testimonialCreateSchema = testimonialShape.extend({
+  approved: testimonialShape.shape.approved.default(false),
+  order: testimonialShape.shape.order.default(0),
+});
+export const testimonialUpdateSchema = testimonialShape.partial();
 
 /* --------------------------------- Settings -------------------------------- */
 
 const handleOrUrl = optionalText(300);
 
+/** PUT body. No defaults: only the fields sent are changed (the model supplies defaults). */
 export const settingsSchema = z.object({
-  businessName: z.string().trim().min(2).max(100).default("ShubhKaaraj"),
+  businessName: z.string().trim().min(2).max(100).optional(),
   tagline: optionalText(160),
   phone: optionalText(20),
   whatsapp: z

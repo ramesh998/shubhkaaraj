@@ -7,6 +7,14 @@ export const objectId = z
 
 const trimmed = (max: number) => z.string().trim().max(max);
 
+/**
+ * Makes a field optional AND clearable: "" and null become undefined. In a PATCH the key is
+ * still present (with value undefined), which Mongoose turns into an $unset, so an admin can
+ * empty a date, number, image or URL field from a form.
+ */
+export const clearable = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((v) => (v === "" || v === null ? undefined : v), schema.optional());
+
 export const optionalText = (max: number) =>
   trimmed(max)
     .optional()
